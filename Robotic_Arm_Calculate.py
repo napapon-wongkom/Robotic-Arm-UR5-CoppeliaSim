@@ -43,7 +43,7 @@ class Robotic_Arm:
         alpha = np.arctan2(-R[1,2],R[2,2]) * self.r2d
         beta = np.arcsin(R[0,2]) * self.r2d
         gamma = np.arctan2(-R[0,1],R[0,0]) * self.r2d
-        euler = np.array([alpha,beta,gamma]).round(4)
+        euler = np.array([alpha,beta,gamma])
         return euler
 
     def foward_kinematic(self):
@@ -80,8 +80,8 @@ UR5_DH_table = [[0,     0,          0.0892,     -90 +joint_theta[0]],
 
 #--------------------------------------------------------initialize robotic arm--------------------------------------------
 UR5 = Robotic_Arm(UR5_DH_table)
-forward = UR5.foward_kinematic()
-euler = UR5.Euler()
+forward = UR5.foward_kinematic().round(4)
+euler = UR5.Euler().round(2)
 Jacobian = UR5.Jacobian()
 print("_____________________________________________")
 print("End point position:    {}".format(forward))
