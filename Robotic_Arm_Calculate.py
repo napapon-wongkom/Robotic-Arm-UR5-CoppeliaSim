@@ -165,6 +165,7 @@ if __name__ == "__main__":
     #     th[i] = 0
 
     if mode == 1:
+        print("Time : {}".format(tf))
         print("Start")
         while t < tf:
             #-----------------------------------------Change Your DH_Table---------------------------------------------------------
