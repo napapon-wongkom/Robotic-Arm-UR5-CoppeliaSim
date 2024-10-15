@@ -2,6 +2,10 @@
 import numpy as np
 import math as m
 import time
+import random as rand
+from matplotlib import pyplot as plt
+
+d2r = np.pi / 180
 
 class Robotic_Arm:
     def __init__(self,DH_table):
@@ -90,79 +94,120 @@ class Robotic_Arm:
         desire_pos = np.array(desire_pos)
         Delta_X = np.subtract(desire_pos,self.X())
         invJ = self.inverse(self.Jacobian())
-        #invJ = self.Jacobian()
         Delta_theta = np.dot(invJ,Delta_X) #delta theta = inverse Jacobian * delta X
         theta = self.degarr2radarr(theta)
         Ntheta = theta + (alpha * Delta_theta)
         return Ntheta
+    
+    def debug(self):
+        print("_____________________________________________")
+        print("End point position:    {}".format(self.foward_kinematic().round(4)))
+        print("End point orientation: {}".format(self.Euler().round(2)))
+        print("_____________________________________________")
+        print("jacobian of robot arm : ")
+        print(self.Jacobian().round(6))
+        print("---------------------------------------------")
+    
+    def cubic_polynomial(self):
+        pass
 
+class Cubic_polynomial:
+    def __init__(self,u0,uf,v0,vf,tf,t):
+        self.u0 = u0
+        self.uf = uf
+        self.v0 = v0
+        self.vf = vf
+        self.t = t
+        self.tf = tf
+    def position(self):
+        pos = self.u0 + ((3 / self.tf**2) * (self.uf - self.u0) * (self.t ** 2)) - ((2 / self.tf**3) * (self.uf - self.u0) * (self.t ** 3))
+        return pos
+    
+    def velocity(self):
+        velocity = ((6 / self.tf ** 2) * (self.uf - self.u0) * self.t) - ((6 / self.tf ** 3) * (self.uf - self.u0) * (self.t ** 2))
+        return velocity
+
+    def acceleration(self):
+        accelerate = ((6 / self.tf ** 2) * (self.uf - self.u0)) - ((12 / self.tf ** 3) * (self.uf - self.u0) * self.t)
+        return accelerate
+    
+    def debug(self):
+         print("time : {} , Position : {} , Velocity : {} , Accelerate : {} ".format(self.t,self.position(),self.velocity(),self.acceleration()))
+#============================================================================================================================================
+def start2stop(th0,thf,deg,joint_n):
+    for i in range(joint_n):
+        joint_rand0 = rand.randrange(0,deg + 1)
+        th0[i] = joint_rand0
+        joint_randf = rand.randrange((-deg),0)
+        thf[i] = joint_randf
+
+def delay(t):
+    init_t = time.time()
+    tset = 0
+    while tset < t:
+      tset = time.time() - init_t
+
+#============================================================================================================================================
 
 if __name__ == "__main__":
 
     mode = int(input("Please select 0 (Debug) or 1 (Realtime) :"))
     t = 0
+    tf = 20
     t1 = time.time()
     theta = 0
-
     th = {}
-    for i in range(0,6):
-        th[i] = 0
+    th0 = {}
+    thf = {}
+    start2stop(th0,thf,60,6)
+
+    # for i in range(6):
+    #     th[i] = 0
 
     if mode == 1:
-        while t < 2:
+        print("Start")
+        while t < tf:
             #-----------------------------------------Change Your DH_Table---------------------------------------------------------
             # Joint Parameter
-            UR5_DH_table = [[0,     0,          0.0892,     -90 +th[0]],
-                        [90,     0,          0,     90 + th[1]],
-                        [0,       0.4251,    0,        th[2]],
-                        [0,       0.3922,    0.110,      -90 + th[3]],
-                        [-90,       0,    0.0948,        th[4]],
-                        [90,       0,    0.07495,        th[5]],
+            UR5_DH_table = [[0,     0,          0.0892,     -90 +th0[0]],
+                        [90,     0,          0,     90 + th0[1]],
+                        [0,       0.4251,    0,        th0[2]],
+                        [0,       0.3922,    0.110,      -90 + th0[3]],
+                        [-90,       0,    0.0948,        th0[4]],
+                        [90,       0,    0.07495,        th0[5]],
                         [0,       0,    0.19163,        180]
                         ]
-            ob = [0.5,0.25,0.1,0,0,0]
 
             #--------------------------------------------------------initialize robotic arm--------------------------------------------
             UR5 = Robotic_Arm(UR5_DH_table)
-            forward = UR5.foward_kinematic().round(4)
-            euler = UR5.Euler().round(2)
-            Jacobian = UR5.Jacobian().round(6)
-            print("_____________________________________________")
-            print("End point position:    {}".format(forward))
-            print("End point orientation: {}".format(euler))
-            print("_____________________________________________")
-            print("jacobian of robot arm : ")
-            print(Jacobian)
-            print("---------------------------------------------")
-            th = UR5.inverse_kinematic(ob,0.01,th) * (180/np.pi)
-            print(th)
+            #UR5.debug()
+            #th = UR5.inverse_kinematic(ob,0.01,th) * (180/np.pi)
+            for i in range(6):
+                Cubic = Cubic_polynomial(th0.get(i),thf.get(i),0,0,tf,t)
+                th[i] = Cubic.position()
+            print(th.get(0))
+
             t = time.time() - t1
+        print("Stop")   
+    #============================================================================================================================================
     elif mode == 0:
         #-----------------------------------------Change Your DH_Table---------------------------------------------------------
-        UR5_DH_table = [[0,     0,          0.0892,     -90 +th.get(0)],
-                        [90,     0,          0,     90 + th.get(1)],
-                        [0,       0.4251,    0,        th.get(2)],
-                        [0,       0.3922,    0.110,      -90 + th.get(3)],
-                        [-90,       0,    0.0948,        th.get(4)],
-                        [90,       0,    0.07495,        th.get(5)],
+        UR5_DH_table = [[0,     0,          0.0892,     -90 +th0.get(0)],
+                        [90,     0,          0,     90 + th0.get(1)],
+                        [0,       0.4251,    0,        th0.get(2)],
+                        [0,       0.3922,    0.110,      -90 + th0.get(3)],
+                        [-90,       0,    0.0948,        th0.get(4)],
+                        [90,       0,    0.07495,        th0.get(5)],
                         [0,       0,    0.19163,        180]
                         ]
+        
         ob = [0.5,0.25,0.1,0,0,0]
 
         #--------------------------------------------------------initialize robotic arm--------------------------------------------
         UR5 = Robotic_Arm(UR5_DH_table)
-        forward = UR5.foward_kinematic().round(4)
-        euler = UR5.Euler().round(2)
-        Jacobian = UR5.Jacobian().round(6)
-        print("_____________________________________________")
-        print("End point position:    {}".format(forward))
-        print("End point orientation: {}".format(euler))
-        print("_____________________________________________")
-        print("jacobian of robot arm : ")
-        print(Jacobian)
-        print("---------------------------------------------")
-        th = UR5.inverse_kinematic(ob,0.01,th) * (180/np.pi)
-        print(th)
+        #current_pos = UR5.foward_kinematic()
+        #UR5.debug()
+        #th = UR5.inverse_kinematic(ob,0.01,th) * (180/np.pi)
 
 
 
