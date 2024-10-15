@@ -185,7 +185,7 @@ if __name__ == "__main__":
             for i in range(6):
                 Cubic = Cubic_polynomial(th0.get(i),thf.get(i),0,0,tf,t)
                 th[i] = Cubic.position()
-            print(th.get(0))
+            print(th)
 
             t = time.time() - t1
         print("Stop")   
