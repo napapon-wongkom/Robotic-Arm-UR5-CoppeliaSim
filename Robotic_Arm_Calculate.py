@@ -132,7 +132,57 @@ class Cubic_polynomial:
         return accelerate
     
     def debug(self):
-         print("time : {} , Position : {} , Velocity : {} , Accelerate : {} ".format(self.t,self.position(),self.velocity(),self.acceleration()))
+         print("time : {} s , Position : {} , Velocity : {} , Accelerate : {} ".format(self.t,self.position(),self.velocity(),self.acceleration()))
+
+class Linear_interpolation:
+    def __init__(self,u0,uf,tf,tb,t):
+        self.u0 = u0
+        self.uf = uf
+        self.tf = tf
+        self.tb = tb
+        self.t = t
+        self.vb = (self.u0 - self.uf) / (self.tb - self.tf)
+        self.a = self.vb / self.tb
+
+    def position(self):
+        while self.t < self.tf:
+            if (self.t <= self.tb):
+                position = self.u0 + ((1/2) * self.a * (self.t ** 2))
+                return position
+            elif(self.t <= (self.tf - self.tb)):
+                position = self.u0 + ((1/2) * self.a * (self.tb ** 2)) + (self.vb * (self.t - self.tb))
+                return position
+            elif(self.t <= self.tf):
+                position = self.u0 + ((1/2) * self.a * (self.tb ** 2)) + (self.vb * (self.tf - (2 * self.tb))) + (self.vb * (self.t - (self.tf - self.tb))) - ((1/2) * self.a * ((self.t - (self.tf - self.tb)) ** 2))
+                return position
+    
+    def velocity(self):
+        while self.t < self.tf:
+            if (self.t <= self.tb):
+                velocity = self.a * self.t
+                return velocity
+            elif(self.t <= (self.tf - self.tb)):
+                velocity = self.vb
+                return velocity
+            elif(self.t <= self.tf):
+                velocity = self.vb - (self.a * (self.t - (self.tf - self.tb)))
+                return velocity
+            
+    def acceleration(self):
+        while self.t < self.tf:
+            if (self.t <= self.tb):
+                acceleration = self.a
+                return acceleration
+            elif(self.t <= (self.tf - self.tb)):
+                acceleration = 0
+                return acceleration
+            elif(self.t <= self.tf):
+                acceleration = -self.a
+                return acceleration
+            
+    def debug(self):
+        print("time : {} s , Position : {} , Velocity : {} , Accelerate : {}".format(self.t,self.position(),self.velocity(),self.acceleration()))
+
 #============================================================================================================================================
 def start2stop(th0,thf,deg,joint_n):
     for i in range(joint_n):
@@ -154,6 +204,7 @@ if __name__ == "__main__":
     mode = int(input("Please select 0 (Debug) or 1 (Realtime) :"))
     t = 0
     tf = 20
+    tb = 5
     t1 = time.time()
     theta = 0
     th = {}
@@ -185,7 +236,8 @@ if __name__ == "__main__":
             #th = UR5.inverse_kinematic(ob,0.01,th) * (180/np.pi)
             for i in range(6):
                 Cubic = Cubic_polynomial(th0.get(i),thf.get(i),0,0,tf,t)
-                th[i] = Cubic.position()
+                Blend = Linear_interpolation(th0.get(i),thf.get(i),tf,tb,t)
+                th[i] = Blend.position()
             print(th)
 
             t = time.time() - t1
