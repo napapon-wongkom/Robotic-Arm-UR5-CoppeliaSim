@@ -6,6 +6,7 @@ import random as rand
 from matplotlib import pyplot as plt
 
 d2r = np.pi / 180
+r2d = 180 / np.pi
 
 class Robotic_Arm:
     def __init__(self,DH_table):
@@ -99,6 +100,11 @@ class Robotic_Arm:
         Ntheta = theta + (alpha * Delta_theta)
         return Ntheta
     
+    def MSE(self,desire_pos):
+        desire_pos = np.array(desire_pos)
+        MSE = np.mean((desire_pos - self.X()) ** 2)
+        return MSE
+    
     def debug(self):
         print("_____________________________________________")
         print("End point position:    {}".format(self.foward_kinematic().round(4)))
@@ -107,9 +113,6 @@ class Robotic_Arm:
         print("jacobian of robot arm : ")
         print(self.Jacobian().round(6))
         print("---------------------------------------------")
-    
-    def cubic_polynomial(self):
-        pass
 
 class Cubic_polynomial:
     def __init__(self,u0,uf,v0,vf,tf,t):
@@ -191,6 +194,15 @@ def start2stop(th0,thf,deg,joint_n):
         joint_randf = rand.randrange((-deg),0)
         thf[i] = joint_randf
 
+def start2task(th0,d_xyz,deg,joint_n):
+    for i in range(joint_n):
+        joint_rand0 = rand.randrange(-deg,deg + 1)
+        th0[i] = joint_rand0
+    for j in range(2):
+        xyz_rand = rand.randrange(45,55)
+        d_xyz.append(xyz_rand * 0.01)
+    d_xyz.append(0.0375)
+
 def delay(t):
     init_t = time.time()
     tset = 0
@@ -202,44 +214,62 @@ def delay(t):
 if __name__ == "__main__":
 
     mode = int(input("Please select 0 (Debug) or 1 (Realtime) :"))
+    #_____________Set Up Parameter___________________________________________________________________
     t = 0
     tf = 20
     tb = 5
-    t1 = time.time()
     theta = 0
     th = {}
     th0 = {}
     thf = {}
-    start2stop(th0,thf,60,6)
+    d_xyz = []
 
+    #________________________________________________________________________________________________
+    #start2stop(th0,thf,60,6)
+    start2task(th0,d_xyz,60,6)
+    thf = th0
+    for i in range(6):
+        thf[i] = 0
     # for i in range(6):
     #     th[i] = 0
 
     if mode == 1:
-        print("Time : {}".format(tf))
-        print("Start")
-        while t < tf:
+        print('Find Last Theta')
+        while True:
             #-----------------------------------------Change Your DH_Table---------------------------------------------------------
             # Joint Parameter
-            UR5_DH_table = [[0,     0,          0.0892,     -90 +th0[0]],
-                        [90,     0,          0,     90 + th0[1]],
-                        [0,       0.4251,    0,        th0[2]],
-                        [0,       0.3922,    0.110,      -90 + th0[3]],
-                        [-90,       0,    0.0948,        th0[4]],
-                        [90,       0,    0.07495,        th0[5]],
+            UR5_DH_table = [[0,     0,          0.0892,     -90 + thf[0]],
+                        [90,     0,          0,     90 + thf[1]],
+                        [0,       0.4251,    0,        thf[2]],
+                        [0,       0.3922,    0.110,      -90 + thf[3]],
+                        [-90,       0,    0.0948,        thf[4]],
+                        [90,       0,    0.07495,        thf[5]],
                         [0,       0,    0.19163,        180]
                         ]
 
             #--------------------------------------------------------initialize robotic arm--------------------------------------------
             UR5 = Robotic_Arm(UR5_DH_table)
-            #UR5.debug()
-            #th = UR5.inverse_kinematic(ob,0.01,th) * (180/np.pi)
+            print(UR5.Jacobian())
+            break
+            d_ori = np.array([0,0,0])
+            d_pos = np.concatenate((np.array(d_xyz),d_ori * d2r))
+            new_theta = UR5.inverse_kinematic(d_pos,0.0001,thf) * r2d
+            thf = dict(enumerate(new_theta))
+            error = UR5.MSE(d_pos)
+            print('Error : {}'.format(error))
+            if(error <= 0.001):
+                break
+            
+        print(thf)
+        print("Time : {}".format(tf))
+        print("Start")
+        t1 = time.time()
+        while t < tf:
             for i in range(6):
                 Cubic = Cubic_polynomial(th0.get(i),thf.get(i),0,0,tf,t)
                 Blend = Linear_interpolation(th0.get(i),thf.get(i),tf,tb,t)
                 th[i] = Blend.position()
-            print(th)
-
+            #print(th)
             t = time.time() - t1
         print("Stop")   
     #============================================================================================================================================
@@ -254,13 +284,17 @@ if __name__ == "__main__":
                         [0,       0,    0.19163,        180]
                         ]
         
-        ob = [0.5,0.25,0.1,0,0,0]
 
         #--------------------------------------------------------initialize robotic arm--------------------------------------------
         UR5 = Robotic_Arm(UR5_DH_table)
+        d_ori = UR5.Euler()
         #current_pos = UR5.foward_kinematic()
         #UR5.debug()
-        #th = UR5.inverse_kinematic(ob,0.01,th) * (180/np.pi)
+        d_pos = np.concatenate((np.array(d_xyz),d_ori * d2r))
+        th = UR5.inverse_kinematic(d_pos,0.1,th0) * r2d
+        print(th0)
+        print(d_pos)
+        print(th)
 
 
 
