@@ -238,80 +238,94 @@ def delay(t):
     while tset < t:
       tset = time.time() - init_t
 
-#============================================================================================================================================
-
-if __name__ == "__main__":
-
-    mode = int(input("Please select 0 (Debug) or 1 (Realtime) :"))
-    #_____________Set Up Parameter___________________________________________________________________
-    t = 0
-    tf = 20
-    tb = 5
-    theta = 0
+def find_theta(th0,target):
     th = {}
-    th0 = {}
-    thf = {}
-    d_xyz = [0,0,0]
-    set_zero(th0,6)
-    #________________________________________________________________________________________________
-
-    if mode == 1:
-        print('Find Last Theta')
-        while True:
+    th = th0
+    while True:
             #-----------------------------------------Change Your DH_Table---------------------------------------------------------
-            # Joint Parameter
             UR5_DH_table = [[0,     0,          0.0892,     -90 + th[0]],
                         [90,     0,          0,     90 + th[1]],
                         [0,       0.4251,    0,        th[2]],
                         [0,       0.3922,    0.110,      -90 + th[3]],
                         [-90,       0,    0.0948,        th[4]],
-                        [90,       0,    0.07495,        th[5]],
-                        [0,       0,    0.19163,        180]
+                        [90,       0,    0.07495 + 0.19163,        180 + th[5]]
                         ]
 
             #--------------------------------------------------------initialize robotic arm--------------------------------------------
             UR5 = Robotic_Arm(UR5_DH_table)
-            print(UR5.Jacobian())
             d_ori = np.array([0,0,0])
-            d_pos = np.concatenate((np.array(d_xyz),d_ori * d2r))
-            new_theta = UR5.inverse_kinematic(d_pos,0.0001,thf) * r2d
-            thf = dict(enumerate(new_theta))
+            d_pos = np.concatenate((np.array(target),d_ori * d2r))
+            new_theta = UR5.inverse_kinematic(d_pos,0.001,th) * r2d
+            th = dict(enumerate(new_theta))
             error = UR5.MSE(d_pos)
-
             print('Error : {}'.format(error))
             if(error <= 0.001):
+                thf = th
                 break
-        #_________________________________________________________________________________________________________________
-        print(thf)
-        print("Time : {}".format(tf))
-        print("Start")
-        t1 = time.time()
-        while t < tf:
-            for i in range(6):
-                Cubic = Cubic_polynomial(th0.get(i),thf.get(i),0,0,tf,t)
-                Blend = Linear_interpolation(th0.get(i),thf.get(i),tf,tb,t)
-                th[i] = Blend.position()
-            #print(th)
-            t = time.time() - t1
-        print("Stop")   
-    #============================================================================================================================================
+    return thf
+
+#============================================================================================================================================
+
+if __name__ == "__main__":
+    #_____________Set Up Parameter___________________________________________________________________
+    t = 0
+    tf = 5
+    tb = 2
+    theta = 0
+    th1 = {}
+    th2 = {}
+    th3 = {}
+    th4 = {}
+    th0 = {}
+    th_p1 = {}
+    th_p2 = {}
+    th_p3 = {}
+    th_p4 = {}
+    th_z = [th_p1,th_p2,th_p3,th_p4]
+    thf = {}
+    target_y = 0.65
     
-    elif mode == 0:
-        #-----------------------------------------Change Your DH_Table---------------------------------------------------------
-        UR5_DH_table = [[0,     0,          0.0892,     -90 +th0.get(0)],
-                        [90,     0,          0,     90 + th0.get(1)],
-                        [0,       0.4251,    0,        th0.get(2)],
-                        [0,       0.3922,    0.110,      -90 + th0.get(3)],
-                        [-90,       0,    0.0948,        th0.get(4)],
-                        [90,       0,    0.07495+0.19163,        180 + th0.get(5)]
-                        ]
-        #--------------------------------------------------------initialize robotic arm--------------------------------------------
-        UR5 = Robotic_Arm(UR5_DH_table)
-        d_ori = UR5.Euler()
-        #current_pos = UR5.foward_kinematic()
-        #UR5.debug()
-        d_pos = np.concatenate((np.array(d_xyz),d_ori * d2r))
-        th = UR5.inverse_kinematic(d_pos,0.1,th0) * r2d
+    point1 = [-0.075, target_y, 0.85]
+    point2 = [-0.075, target_y, 0.5]
+    point3 = [0.075, target_y,0.85]
+    point4 = [0.075, target_y,0.5] 
+    z_point = [point1,point2,point3,point4]
+    d_xyz = [0,0,0]
+    set_zero(th0,6)
+    #________________________________________________________________________________________________
+    th_z[0] = find_theta(th0,z_point[0])
+    th_z[1] = find_theta(th_z[0],z_point[1])
+    th_z[2] = find_theta(th_z[1],z_point[2])
+    th_z[3] = find_theta(th_z[2],z_point[3])
+        
+        #_________________________________________________________________________________________________________________
+    print("Start")
+    t1 = time.time()
+    while time.time() - t1 < tf: 
+        t = time.time() - t1
+        for i in range(6):
+            Blend1 = Linear_interpolation(th0[i],th_z[0][i],tf,tb,t)
+            th1[i] = Blend1.position()
+    t2 = time.time()    
+    while time.time() - t2 < tf:
+        t = time.time() - t2
+        for i in range(6):
+            Blend2 = Linear_interpolation(th_z[0][i],th_z[1][i],tf,tb,t)
+            th2[i] = Blend2.position()
+    t3 = time.time()
+    while time.time() - t3 < tf:
+        t = time.time() - t3
+        for i in range(6):
+            Blend3 = Linear_interpolation(th_z[1][i],th_z[2][i],tf,tb,t)
+            th3[i] = Blend3.position()
+    t4 = time.time()
+    while time.time() - t4 < tf:
+        t = time.time() - t4
+        for i in range(6):
+            Blend4 = Linear_interpolation(th_z[2][i],th_z[3][i],tf,tb,t)
+            th4[i] = Blend4.position()
+    print("Stop")   
+    #============================================================================================================================================
         
         
     
