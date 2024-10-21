@@ -207,27 +207,6 @@ def set_zero(th0,joint):
     for i in range(joint):
         th0[i] = 0
 
-def circle(center_x,center_y,radius):
-    circle_para = []
-    
-    theta = np.linspace(0, 2 * np.pi, 100)
-    
-    # Parametric equations for the circle
-    x = center_x + radius * np.cos(theta)
-    y = center_y + radius * np.sin(theta)
-    for i in range(len(x)):
-        print('X : {} , Y : {}'.format(x[i],y[i]))
-        sub_para = []
-        sub_para.append(x[i])
-        sub_para.append(y[i])
-        sub_para.append(0.2)
-        circle_para.append(sub_para)
-    plt.plot(x,y)
-    plt.grid()
-    plt.show()
-    circle_para = np.array(circle_para)
-    return circle_para
-
 def normalize_angle(ceil,angle):
     # Normalize multiples of 360 to 0
     if (angle >= 0):
@@ -281,12 +260,12 @@ if __name__ == "__main__":
         while True:
             #-----------------------------------------Change Your DH_Table---------------------------------------------------------
             # Joint Parameter
-            UR5_DH_table = [[0,     0,          0.0892,     -90 + thf[0]],
-                        [90,     0,          0,     90 + thf[1]],
-                        [0,       0.4251,    0,        thf[2]],
-                        [0,       0.3922,    0.110,      -90 + thf[3]],
-                        [-90,       0,    0.0948,        thf[4]],
-                        [90,       0,    0.07495,        thf[5]],
+            UR5_DH_table = [[0,     0,          0.0892,     -90 + th[0]],
+                        [90,     0,          0,     90 + th[1]],
+                        [0,       0.4251,    0,        th[2]],
+                        [0,       0.3922,    0.110,      -90 + th[3]],
+                        [-90,       0,    0.0948,        th[4]],
+                        [90,       0,    0.07495,        th[5]],
                         [0,       0,    0.19163,        180]
                         ]
 
@@ -298,6 +277,7 @@ if __name__ == "__main__":
             new_theta = UR5.inverse_kinematic(d_pos,0.0001,thf) * r2d
             thf = dict(enumerate(new_theta))
             error = UR5.MSE(d_pos)
+            
             print('Error : {}'.format(error))
             if(error <= 0.001):
                 break
