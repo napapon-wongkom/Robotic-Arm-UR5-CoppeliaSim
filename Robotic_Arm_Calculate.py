@@ -277,7 +277,7 @@ if __name__ == "__main__":
             new_theta = UR5.inverse_kinematic(d_pos,0.0001,thf) * r2d
             thf = dict(enumerate(new_theta))
             error = UR5.MSE(d_pos)
-            
+
             print('Error : {}'.format(error))
             if(error <= 0.001):
                 break
@@ -311,7 +311,6 @@ if __name__ == "__main__":
         #UR5.debug()
         d_pos = np.concatenate((np.array(d_xyz),d_ori * d2r))
         th = UR5.inverse_kinematic(d_pos,0.1,th0) * r2d
-        print(circle(0,0,2))
         
         
     
